@@ -9,21 +9,19 @@ from .client import *
 
 
 class Server:
-    def __init__(self, num_clients, iid, output_path, num_rounds, local_epochs, batch_size, alpha=0.5):
+    def __init__(self, num_clients, output_path, num_rounds, local_epochs, batch_size):
         self.num_clients = num_clients
-        self.iid = iid
         self.output_path = output_path 
         self.num_rounds = num_rounds # number of rounds that models should be trained on clients
         self.local_epochs = local_epochs # number of epochs each client is trained per round
         self.batch_size = batch_size
-        self.alpha = alpha
 
     def setup(self):
         self.model = FastSiam()
-        local_trainloaders, test_loader = create_datasets(self.num_clients, self.iid, self.batch_size, self.alpha)
+        local_trainloaders = create_datasets(self.num_clients)
+        print(local_trainloaders)
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.clients = self.create_clients(local_trainloaders)
-        self.testloader = test_loader
         self.send_model()
         
     def create_clients(self, local_trainloaders):
@@ -62,8 +60,8 @@ class Server:
             client.client_update()
         
         # average models
-        total_size = sum([len(client.dataloader.dataset[1]) for client in self.clients])
-        mixing_coefficients = [len(client.dataloader.dataset[1]) / total_size for client in self.clients]
+        total_size = sum([len(client.dataloader) for client in self.clients])
+        mixing_coefficients = [len(client.dataloader) / total_size for client in self.clients]
         self.average_model(mixing_coefficients)
     
     

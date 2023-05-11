@@ -57,8 +57,12 @@ class Client:
             local_progress=tqdm(self.dataloader, desc=f'Epoch {epoch + 1}/{self.local_epochs}')
             for idx, data in enumerate(local_progress):
                 images = data[0]
+
+                image = images[0][0]
+                views = images[1]
+
                 self.optimizer.zero_grad()
-                data_dict = self.model.forward(images[0].to(self.device, non_blocking=True), images[1].to(self.device, non_blocking=True))
+                data_dict = self.model.forward(image.to(self.device, non_blocking=True), views)
                 loss = data_dict['loss'].mean()
 
                 loss.backward()
@@ -69,6 +73,6 @@ class Client:
 
             epoch_dict = {"epoch":epoch}
             global_progress.set_postfix(epoch_dict)
-        
+            
         # save learning rate so it can be used in next round
         print('last learning rate: ', self.optimizer.param_groups[0]['lr'])

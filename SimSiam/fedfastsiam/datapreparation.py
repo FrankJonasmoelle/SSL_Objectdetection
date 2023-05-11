@@ -5,49 +5,26 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 import torchvision
 import torchvision.transforms as transforms
+from torch.utils.data import Subset
 
 
 RESCALE_SIZE = (120, 100)
 
-class ZenseactDataset(Dataset):
-    def __init__(self, size=50_000, transform=None):
-        self.image_paths = []
+
+class ZenseactSSLDataset(Dataset):
+    def __init__(self, data, transform=None):
+        self.data = data
         self.transform = transform
 
-        # The parent directory containing the folders
-        parent_directory = "../../../mnt/nfs_mount/single_frames"
-
-        # Find all folders with a 6-digit name
-        folder_pattern = os.path.join(parent_directory, "[0-9]" * 6)
-
-        # Get the list of matching folders
-        folders = glob.glob(folder_pattern)
-        self.folders = folders[:size] # first 5000 folders
-
-        for folder in self.folders:
-            id = os.path.basename(folder) # id = foldername
-            # load image
-            image_path = f"../../../mnt/nfs_mount/single_frames/{id}/camera_front_blur/"
-            image_path = glob.glob(image_path + "*.jpg")
-            self.image_paths.append(image_path)
-
+    def __getitem__(self, idx):
+        dat = self.data[idx]
+        if self.transform:
+            dat = self.transform(dat)
+        dummy_label = 0
+        return dat, dummy_label
 
     def __len__(self):
-        return len(self.folders)
-
-
-    def __getitem__(self, idx):
-        image_path = self.image_paths[idx][0]
-        # load image
-        image = Image.open(image_path).convert('RGB')
-        # resize image
-        downsampled_image = image.resize(RESCALE_SIZE)
-
-        if self.transform:
-            downsampled_image = self.transform(downsampled_image)
-
-        dummy_label = 0        
-        return downsampled_image, dummy_label
+        return len(self.data)
     
 
 class TwoCropsTransform:
@@ -63,37 +40,64 @@ class TwoCropsTransform:
         for view in range(self.num_views):
             view = self.base_transform(x)
             views.append(view)
-        # q = q.extend(views)
         return [q, views]
+    
 
+def generate_ssl_data(size=50_000):
+    parent_directory = "../../../mnt/nfs_mount/single_frames"
+
+    # Find all folders with a 6-digit name
+    folder_pattern = os.path.join(parent_directory, "[0-9]" * 6)
+
+    # Get the list of matching folders
+    folders = glob.glob(folder_pattern)
+    folders = folders[0:size] # *size* folders
+
+    image_data = []
+    for folder in folders:
+        id = os.path.basename(folder) # id = foldername
+        # load image
+        image_path = f"../../../mnt/nfs_mount/single_frames/{id}/camera_front_blur/"
+        image_path = glob.glob(image_path + "*.jpg")
+        image = Image.open(image_path[0]).convert('RGB')
+        # resize image
+        downsampled_image = image.resize(RESCALE_SIZE)
+
+        image_data.append(downsampled_image)
+    return image_data
+    
 
 def load_data_iid(trainset, num_clients, batch_size):
     shuffled_indices = torch.randperm(len(trainset))
-    training_x = trainset.data[shuffled_indices]
-    training_y = torch.Tensor(trainset.targets)[shuffled_indices]
+    # Get the total number of indices
+    num_indices = len(shuffled_indices)
 
-    split_size = len(trainset) // num_clients
-    split_datasets = list(
-                        zip(
-                            torch.split(torch.Tensor(training_x), split_size),
-                            torch.split(torch.Tensor(training_y), split_size)
-                        )
-                    )
-    new_split_datasets = [(dataset[0].numpy(), dataset[1].tolist()) for dataset in split_datasets]
-    new_split_datasets = [(dataset[0], list(map(int, dataset[1]))) for dataset in new_split_datasets]
+    # Determine the number of indices per client
+    indices_per_client = num_indices // num_clients
 
-    local_trainset = [ZenseactDataset(local_dataset[0], local_dataset[1], is_train=True) for local_dataset in new_split_datasets]
+    # Distribute indices among clients
+    local_dataloaders = []
+    for i in range(num_clients):
+        start = i * indices_per_client
+        if i == num_clients - 1:  # Last client gets remaining indices
+            end = num_indices
+        else:
+            end = start + indices_per_client
+        client_indices = shuffled_indices[start:end]
 
-    local_dataloaders = [DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True) for dataset in local_trainset]
+        # create subset of dataset
+        subset = Subset(trainset, client_indices)
+        # create dataloader 
+        local_dataloder = torch.utils.data.DataLoader(subset, batch_size=batch_size)
+
+        local_dataloaders.append(local_dataloder)
     return local_dataloaders
 
 
-def create_datasets(num_clients, dataset_size=5_000, batch_size=64, num_views=4):
+def create_datasets(num_clients, dataset_size=5_000, batch_size=32, num_views=4):
     """Split the whole dataset in IID or non-IID manner for distributing to clients."""
-
-    
     augmentation = [
-        transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
+        transforms.RandomResizedCrop(RESCALE_SIZE, scale=(0.2, 1.)),
         transforms.RandomApply([
             transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)  # not strengthened
         ], p=0.8),
@@ -103,7 +107,9 @@ def create_datasets(num_clients, dataset_size=5_000, batch_size=64, num_views=4)
         #normalize
     ]
     #train_set, val_set = torch.utils.data.random_split(trainset, [45000, 5000])
-    trainset = ZenseactDataset(dataset_size, transform=TwoCropsTransform(transforms.Compose(augmentation), num_views))
+    print("Generating data. Takes a while.")
+    data = generate_ssl_data(dataset_size)
+    trainset = ZenseactSSLDataset(data, transform=TwoCropsTransform(transforms.Compose(augmentation), num_views))
 
     local_dataloaders = load_data_iid(trainset, num_clients, batch_size)
 
