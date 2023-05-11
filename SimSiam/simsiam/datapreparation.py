@@ -63,13 +63,9 @@ class TwoCropsTransform:
 
 
 def prepare_data(dataset_size=5_000, batch_size=64):
-    # TODO
-    #normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-    #                                    std=[0.229, 0.224, 0.225])
-
     # MoCo v2's aug: similar to SimCLR https://arxiv.org/abs/2002.05709
     augmentation = [
-        transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
+        transforms.RandomResizedCrop(RESCALE_SIZE, scale=(0.2, 1.)),
         transforms.RandomApply([
             transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)  # not strengthened
         ], p=0.8),
