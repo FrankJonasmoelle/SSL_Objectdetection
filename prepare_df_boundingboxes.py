@@ -1,7 +1,12 @@
+"""creates dataframe with labeled bounding boxes - used for downstream task object detectioin (fine-tuning)"""
 import json
 import glob
 import pandas as pd
 from PIL import Image
+import os
+
+RESCALE_SIZE = (120, 100)
+NUM_DATA_POINTS = 25_000 
 
 def get_annotations(id):
     annotation_path = f"../../../mnt/nfs_mount/single_frames/{id}/annotations/object_detection/"
@@ -22,21 +27,30 @@ def get_annotations(id):
     # only get cars
     for annotation in annotation_list:
         if annotation["properties"]["class"] == "Vehicle":
-            # get bounding boxes
-            box_coordinates = annotation["geometry"]["coordinates"]
+            # filter cars
+            try:
+                if annotation["properties"]["type"] == "Car":
+                    # get bounding boxes
+                    box_coordinates = annotation["geometry"]["coordinates"]
 
-            # Rescale bounding boxes 
-            new_size = (224, 224)
-            scale_x = new_size[0] / size[0]
-            scale_y = new_size[1] / size[1]
-            
-            min_x = min(coord[0] for coord in box_coordinates) * scale_x
-            min_y = min(coord[1] for coord in box_coordinates) * scale_y
-            max_x = max(coord[0] for coord in box_coordinates) * scale_x
-            max_y = max(coord[1] for coord in box_coordinates) * scale_y
+                    # Rescale bounding boxes 
+                    new_size = RESCALE_SIZE
+                    scale_x = new_size[0] / size[0]
+                    scale_y = new_size[1] / size[1]
+                    
+                    min_x = min(coord[0] for coord in box_coordinates) * scale_x
+                    min_y = min(coord[1] for coord in box_coordinates) * scale_y
+                    max_x = max(coord[0] for coord in box_coordinates) * scale_x
+                    max_y = max(coord[1] for coord in box_coordinates) * scale_y
 
-            new_row = {"image_id": id, "x_min": min_x, "y_min": min_y, "x_max": max_x, "y_max": max_y}
-            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                    new_row = {"image_id": id, "x_min": min_x, "y_min": min_y, "x_max": max_x, "y_max": max_y}
+                    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                else:
+                    # no car, ignore
+                    pass
+            except:
+                # undefined category
+                pass
 
     return df
 
@@ -50,7 +64,7 @@ def create_df_bounding_boxes():
 
     # Get the list of matching folders
     folders = glob.glob(folder_pattern)
-    folders = folders[:5000] # first 5000 folders
+    folders = folders[:NUM_DATA_POINTS] # first x folders
 
     column_names = ['image_id', 'x_min', 'y_min', 'x_max', 'y_max']
     total_df = pd.DataFrame(columns=column_names)

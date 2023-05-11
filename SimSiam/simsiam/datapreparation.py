@@ -7,6 +7,8 @@ import torchvision
 import torchvision.transforms as transforms
 
 
+RESCALE_SIZE = (120, 100)
+
 class ZenseactDataset(Dataset):
     def __init__(self, size=50_000, transform=None):
         self.image_paths = []
@@ -39,7 +41,7 @@ class ZenseactDataset(Dataset):
         # load image
         image = Image.open(image_path).convert('RGB')
         # resize image
-        downsampled_image = image.resize((224, 224))
+        downsampled_image = image.resize(RESCALE_SIZE)
 
         if self.transform:
             downsampled_image = self.transform(downsampled_image)

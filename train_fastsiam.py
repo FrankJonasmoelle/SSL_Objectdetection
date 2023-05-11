@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 if __name__=="__main__":
     """
-    python3 train_fastsiam.py --epochs 25 --batch_size 32 --lr 0.03 --momentum 0.9 --weight_decay 0.0005 --output_path 'fastsiam.pth'
+    python3 train_fastsiam.py --epochs 25 --batch_size 32 --lr 0.03 --momentum 0.9 --weight_decay 0.0005 --output_path 'fastsiam_new.pth'
     """
     parser = argparse.ArgumentParser()
 
@@ -24,7 +24,7 @@ if __name__=="__main__":
     opt = parser.parse_args()
 
     print("preparing data")
-    train_loader = prepare_data(dataset_size=25_000, batch_size=opt.batch_size, num_views=4)
+    train_loader = prepare_data(dataset_size=50_000, batch_size=opt.batch_size, num_views=4)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = FastSiam().to(device)
