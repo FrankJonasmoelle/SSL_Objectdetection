@@ -5,7 +5,7 @@ import argparse
 import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-
+import pickle
 
 
 if __name__=="__main__":
@@ -24,7 +24,18 @@ if __name__=="__main__":
     opt = parser.parse_args()
 
     print("preparing data")
-    train_loader = prepare_data(dataset_size=50_000, batch_size=opt.batch_size, num_views=4)
+
+    if os.path.exists("ssl_data.pkl"):
+        print("data file found")
+        with open("ssl_data.pkl", "rb") as file:
+            data = pickle.load(file)
+    else:
+        print("generating data. This might take a while.")
+        data = generate_ssl_data(25_000)
+        with open("ssl_data.pkl", "wb") as file:
+            pickle.dump(data, file)
+
+    train_loader = prepare_data(data, batch_size=opt.batch_size, num_views=4)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = FastSiam().to(device)
