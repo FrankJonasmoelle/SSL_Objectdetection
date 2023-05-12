@@ -6,7 +6,7 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import Subset
-
+import pickle
 
 RESCALE_SIZE = (120, 100)
 
@@ -107,8 +107,18 @@ def create_datasets(num_clients, dataset_size=5_000, batch_size=32, num_views=4)
         #normalize
     ]
     #train_set, val_set = torch.utils.data.random_split(trainset, [45000, 5000])
-    print("Generating data. Takes a while.")
-    data = generate_ssl_data(dataset_size)
+    # print("Generating data. Takes a while.")
+    # data = generate_ssl_data(dataset_size)
+    if os.path.exists("../../../ssl_data.pkl"):
+        print("data file found")
+        with open("ssl_data.pkl", "rb") as file:
+            data = pickle.load(file)
+    else:
+        print("generating data. This might take a while.")
+        data = generate_ssl_data(25_000)
+        with open("ssl_data.pkl", "wb") as file:
+            pickle.dump(data, file)
+
     trainset = ZenseactSSLDataset(data, transform=TwoCropsTransform(transforms.Compose(augmentation), num_views))
 
     local_dataloaders = load_data_iid(trainset, num_clients, batch_size)
