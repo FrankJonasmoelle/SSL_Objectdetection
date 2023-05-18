@@ -5,12 +5,12 @@ import argparse
 import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-
+import pickle
 
 
 if __name__=="__main__":
     """
-    python3 train_simsiam.py --epochs 800 --batch_size 128 --lr 0.03 --momentum 0.9 --weight_decay 0.0005 --output_path 'simsiam_800.pth'
+    python3 train_simsiam.py --epochs 500 --batch_size 32 --lr 0.03 --momentum 0.9 --weight_decay 0.0005 --output_path 'simsiam_500.pth'
     """
     parser = argparse.ArgumentParser()
 
@@ -24,7 +24,18 @@ if __name__=="__main__":
     opt = parser.parse_args()
 
     print("preparing data")
-    train_loader = prepare_data(dataset_size=50_000, batch_size=opt.batch_size)
+
+    if os.path.exists("ssl_data.pkl"):
+        print("data file found")
+        with open("ssl_data.pkl", "rb") as file:
+            data = pickle.load(file)
+    else:
+        print("generating data. This might take a while.")
+        data = generate_ssl_data(25_000)
+        with open("ssl_data.pkl", "wb") as file:
+            pickle.dump(data, file)
+
+    train_loader = prepare_data(data, batch_size=opt.batch_size)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = SimSiam().to(device)

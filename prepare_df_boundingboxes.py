@@ -6,7 +6,7 @@ from PIL import Image
 import os
 
 RESCALE_SIZE = (120, 100)
-NUM_DATA_POINTS = 25_000 
+NUM_DATA_POINTS = 15_000 
 
 def get_annotations(id):
     annotation_path = f"../../../mnt/nfs_mount/single_frames/{id}/annotations/object_detection/"
@@ -64,7 +64,7 @@ def create_df_bounding_boxes():
 
     # Get the list of matching folders
     folders = glob.glob(folder_pattern)
-    folders = folders[:NUM_DATA_POINTS] # first x folders
+    folders = folders[25_000:(25_000+NUM_DATA_POINTS)] # select x folders
 
     column_names = ['image_id', 'x_min', 'y_min', 'x_max', 'y_max']
     total_df = pd.DataFrame(columns=column_names)

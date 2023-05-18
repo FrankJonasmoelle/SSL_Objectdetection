@@ -68,7 +68,7 @@ if __name__=="__main__":
 
     # resnet50
     model = create_fasterrcnn(None)
-    weights = torch.load("faster_rcnn.pth", map_location=torch.device("cuda"))
+    weights = torch.load("faster_rcnn_resnet50.pth", map_location=torch.device("cuda"))
 
     model.load_state_dict(weights)
 
@@ -124,9 +124,13 @@ if __name__=="__main__":
             pred_scores = predictions[i]["scores"].tolist()
 
             # Apply NMS to filter bounding boxes
-            selected_indices = torchvision.ops.nms(torch.tensor(pred_boxes), torch.tensor(pred_scores), detection_threshold)
-            pred_boxes = [pred_boxes[i] for i in selected_indices]
-            pred_scores = [pred_scores[i] for i in selected_indices]
+            try:
+                selected_indices = torchvision.ops.nms(torch.tensor(pred_boxes), torch.tensor(pred_scores), detection_threshold)
+                pred_boxes = [pred_boxes[i] for i in selected_indices]
+                pred_scores = [pred_scores[i] for i in selected_indices]
+            except Exception as e:
+                print(e)
+                continue
 
             # For each ground truth box, find the prediction with the highest IoU
             for gt_box in gt_boxes:

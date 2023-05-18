@@ -72,7 +72,7 @@ class Client:
                 local_progress.set_postfix(data_dict)
 
             epoch_dict = {"epoch":epoch}
-            global_progress.set_postfix(epoch_dict)
+            global_progress.set_postfix(epoch_dict) 
             
         # save learning rate so it can be used in next round
         print('last learning rate: ', self.optimizer.param_groups[0]['lr'])

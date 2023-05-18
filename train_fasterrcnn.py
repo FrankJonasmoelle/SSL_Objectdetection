@@ -13,6 +13,7 @@ from torchvision.models.detection.backbone_utils import BackboneWithFPN
 from torch.utils.data import random_split
 import torchvision.transforms as transforms
 from torch.cuda.amp import autocast, GradScaler
+from tqdm import tqdm
 
 
 from SimSiam.simsiam.fastsiam import *
@@ -112,12 +113,14 @@ def custom_resnet_fpn_backbone(resnet, return_layers, in_channels_stage2=256, ou
 
 def create_fasterrcnn(modelpath):
     if modelpath:
+        print("using simsiam encoder")
         resnet_model = FastSiam()
         pretrained_weights = torch.load(modelpath, map_location=torch.device('cuda')) # cpu
         resnet_model.load_state_dict(pretrained_weights)
         resnet_model = resnet_model.backbone
     else:
-        resnet_model = resnet50()
+        print("using pure resnet50")
+        resnet_model = resnet50(pretrained=False)
 
     # Define which layers from the ResNet model to use as output for the FPN
     return_layers = {'layer1': '0', 'layer2': '1', 'layer3': '2', 'layer4': '3'}
@@ -144,7 +147,7 @@ if __name__=="__main__":
     torch.cuda.empty_cache()
 
     batch_size = 16
-    modelpath = "fastsiam.pth"
+    modelpath = None#"fastsiam_new.pth"
     model = create_fasterrcnn(modelpath)
 
     # dataset preparation 
@@ -171,22 +174,23 @@ if __name__=="__main__":
 
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True, num_workers=0)
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, collate_fn=collate_fn, shuffle=False, num_workers=0)
-
+    
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = model.to(device)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, weight_decay=0.0005)
-    num_epochs = 20
+    num_epochs = 15
 
     scaler = GradScaler()
 
     loss_per_epoch = []
-    for epoch in range(num_epochs):
+    global_progress = tqdm(range(0, num_epochs), desc=f'Training')
+    for epoch in global_progress:
         epoch_loss = 0
-        for images, targets, id in trainloader:
+        local_progress=tqdm(trainloader, desc=f'Epoch {epoch}/{num_epochs}')
+        for images, targets, id in local_progress:
             torch.cuda.empty_cache()
             try:
-                print("trying to put it to the gpu")
                 optimizer.zero_grad()
 
                 with autocast():
@@ -202,6 +206,8 @@ if __name__=="__main__":
                 scaler.step(optimizer)
                 scaler.update()
 
+                local_progress.set_postfix(loss_dict)
+
               #  losses.backward()
               #  optimizer.step()
                 torch.cuda.empty_cache()
@@ -212,6 +218,8 @@ if __name__=="__main__":
             loss_per_epoch.append(epoch_loss / len(trainloader))
         except Exception as e:
             print(e)
+        epoch_dict = {"epoch":epoch}
+        global_progress.set_postfix(epoch_dict)
 
-    PATH = "faster_rcnn_fastsiam.pth"
+    PATH = "faster_rcnn_resnet50.pth"
     torch.save(model.state_dict(), PATH)

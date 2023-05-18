@@ -94,7 +94,7 @@ def load_data_iid(trainset, num_clients, batch_size):
     return local_dataloaders
 
 
-def create_datasets(num_clients, dataset_size=5_000, batch_size=32, num_views=4):
+def create_datasets(num_clients, dataset_size=25_000, batch_size=32, num_views=4):
     """Split the whole dataset in IID or non-IID manner for distributing to clients."""
     augmentation = [
         transforms.RandomResizedCrop(RESCALE_SIZE, scale=(0.2, 1.)),
@@ -106,16 +106,18 @@ def create_datasets(num_clients, dataset_size=5_000, batch_size=32, num_views=4)
         transforms.ToTensor(),
         #normalize
     ]
-    #train_set, val_set = torch.utils.data.random_split(trainset, [45000, 5000])
-    # print("Generating data. Takes a while.")
-    # data = generate_ssl_data(dataset_size)
-    if os.path.exists("../../../ssl_data.pkl"):
+    # if os.path.exists("ssl_data.pkl"):
+    #     print("path exists")
+    # else:
+    #     print("path doesnt exist")
+
+    if os.path.exists("ssl_data.pkl"):
         print("data file found")
         with open("ssl_data.pkl", "rb") as file:
             data = pickle.load(file)
     else:
         print("generating data. This might take a while.")
-        data = generate_ssl_data(25_000)
+        data = generate_ssl_data(dataset_size)
         with open("ssl_data.pkl", "wb") as file:
             pickle.dump(data, file)
 
