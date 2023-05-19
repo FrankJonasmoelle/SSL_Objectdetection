@@ -147,7 +147,7 @@ if __name__=="__main__":
     torch.cuda.empty_cache()
 
     batch_size = 16
-    modelpath = None#"fastsiam_new.pth"
+    modelpath = "simsiam_200.pth"#None
     model = create_fasterrcnn(modelpath)
 
     # dataset preparation 
@@ -221,5 +221,5 @@ if __name__=="__main__":
         epoch_dict = {"epoch":epoch}
         global_progress.set_postfix(epoch_dict)
 
-    PATH = "faster_rcnn_resnet50.pth"
+    PATH = "faster_rcnn_simsiam_200.pth"
     torch.save(model.state_dict(), PATH)

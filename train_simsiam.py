@@ -10,7 +10,7 @@ import pickle
 
 if __name__=="__main__":
     """
-    python3 train_simsiam.py --epochs 500 --batch_size 32 --lr 0.03 --momentum 0.9 --weight_decay 0.0005 --output_path 'simsiam_500.pth'
+    python3 train_simsiam.py --epochs 200 --batch_size 32 --lr 0.03 --momentum 0.9 --weight_decay 0.0005 --output_path 'simsiam_200.pth'
     """
     parser = argparse.ArgumentParser()
 
