@@ -6,7 +6,7 @@ import argparse
 
 if __name__=="__main__":
     """
-    python3 train_fedfastsiam.py --num_clients 10 --alpha 0.5 --num_rounds 5 --local_epochs 5 --batch_size 32 --output_path 'fedfastsiam_10.pth'
+    python3 train_fedfastsiam.py --num_clients 10 --alpha 0.5 --num_rounds 5 --local_epochs 5 --batch_size 32 --output_path 'fedfastsiam_10_40_5.pth'
     """
     parser = argparse.ArgumentParser()  
     
@@ -18,9 +18,7 @@ if __name__=="__main__":
     parser.add_argument('--output_path', type=str, default='fedavg_simsiam.pth')
 
     opt = parser.parse_args()
-
-    # IID = False
-
+    
     server = Server(num_clients=opt.num_clients, output_path=opt.output_path, num_rounds=opt.num_rounds, 
                     local_epochs=opt.local_epochs, batch_size=opt.batch_size)
     # trains the federated model

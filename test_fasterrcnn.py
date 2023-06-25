@@ -18,6 +18,8 @@ import matplotlib.patches as patches
 import json
 from matplotlib.patches import Rectangle
 import cv2
+from sklearn.metrics import precision_recall_curve, auc
+
 
 
 from SimSiam.simsiam.fastsiam import *
@@ -62,13 +64,13 @@ def iou(box1, box2):
 if __name__=="__main__":
     batch_size = 16
 
-    # FastSiam
+    # SimSiam / FastSiam
     # model = create_fasterrcnn("fastsiam.pth")
     # weights = torch.load("faster_rcnn_fastsiam.pth", map_location=torch.device("cuda"))
 
     # resnet50
     model = create_fasterrcnn(None)
-    weights = torch.load("faster_rcnn_resnet50.pth", map_location=torch.device("cuda"))
+    weights = torch.load("faster_rcnn_fastsiam.pth", map_location=torch.device("cuda"))
 
     model.load_state_dict(weights)
 
@@ -102,16 +104,15 @@ if __name__=="__main__":
     detection_threshold = 0.1 # the lower, the less we keep
     iou_threshold = 0.5
 
+    iou_threshold = 0.75
+    detection_threshold = 0.1
+
     model.to(device)
     model.eval()
 
-    TP = 0
-    FP = 0
-    FN = 0
-    iou_threshold = 0.5
-    detection_threshold = 0.1
+    detections = []
 
-    for images, targets, id in testloader:
+    for images, targets, _ in testloader:
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
@@ -132,32 +133,35 @@ if __name__=="__main__":
                 print(e)
                 continue
 
-            # For each ground truth box, find the prediction with the highest IoU
-            for gt_box in gt_boxes:
+            gt_matched = [False]*len(gt_boxes)
+            for pred_box, score in zip(pred_boxes, pred_scores):
                 max_iou = -1
-                max_iou_index = -1
-                for idx, pred_box in enumerate(pred_boxes):
+                max_gt_idx = -1
+                for idx, gt_box in enumerate(gt_boxes):
                     current_iou = iou(gt_box, pred_box)
                     if current_iou > max_iou:
                         max_iou = current_iou
-                        max_iou_index = idx
-
+                        max_gt_idx = idx
                 if max_iou >= iou_threshold:
-                    TP += 1
-                    # Remove the matched prediction box to avoid double counting
-                    pred_boxes.pop(max_iou_index)
-                    pred_scores.pop(max_iou_index)
+                    if gt_matched[max_gt_idx]:  # This ground truth already matched with another prediction
+                        detections.append((score, 0))  # 0 for FP
+                    else:
+                        gt_matched[max_gt_idx] = True
+                        detections.append((score, 1))  # 1 for TP
                 else:
-                    FN += 1
+                    detections.append((score, 0))  # 0 for FP
+            for matched in gt_matched:
+                if not matched:  # No prediction matched this ground truth
+                    detections.append((0, 1))  # 0 score, but it's a ground truth (FN)
 
-            # The remaining prediction boxes are considered as false positives
-            FP += len(pred_boxes)
+    # Sort by score in descending order
+    detections = sorted(detections, key=lambda x: x[0], reverse=True)
 
-    # Calculate Precision, Recall, and Average Precision (AP)
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
-    AP = precision * recall / (precision + recall) * 2
+    # Get lists of scores and TPs/FNs
+    scores, TPs_FNs = zip(*detections)
 
-    print(f"Precision: {precision}")
-    print(f"Recall: {recall}")
-    print(f"Average Precision (AP): {AP}")
+    # Compute Precision-Recall curve and the area under the curve
+    precision, recall, _ = precision_recall_curve(TPs_FNs, scores)
+    AP = auc(recall, precision)
+
+    print("Average Precision (AP):", AP)
