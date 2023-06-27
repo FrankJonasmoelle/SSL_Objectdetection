@@ -7,3 +7,5 @@ Steps to execute:
 - Train SSL or FSSL model via *train_simsiam.py* or *train_fedsimsiam.py*
 - Train the Faster R-CNN which uses the trained backbone weights from the previous step by executing *train_fasterrcnn.py*
 - Receive the AP score by running *test_fasterrcnn.py*
+
+![alt text](example_prediction/zod_example_predictions.png "Example Prediction")
