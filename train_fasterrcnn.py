@@ -21,6 +21,7 @@ from SimSiam.simsiam.fastsiam import *
 
 RESCALE_SIZE = (120, 100)
 
+
 class ZenseactLabeledDataset(torch.utils.data.Dataset):
     def __init__(self, data):
         self.data = data
@@ -39,6 +40,7 @@ class ZenseactLabeledDataset(torch.utils.data.Dataset):
     def __len__(self):
         return self.n_samples
     
+
 def generate_data(df, index):
     data = df[df["id"] == index]
 
@@ -98,15 +100,12 @@ def generate_all_data():
 
 def custom_resnet_fpn_backbone(resnet, return_layers, in_channels_stage2=256, out_channels=256):
     backbone = resnet
-    # Remove the fully connected layer (fc)
     del backbone.fc
 
-    # Extract the layers from the ResNet model
     return_layers = return_layers
     in_channels_list = [in_channels_stage2, in_channels_stage2 * 2, in_channels_stage2 * 4, in_channels_stage2 * 8]
     out_channels = out_channels
 
-    # Create the FPN using the extracted layers
     fpn = BackboneWithFPN(backbone, return_layers, in_channels_list, out_channels)
     return fpn
 
@@ -128,10 +127,8 @@ def create_fasterrcnn(modelpath):
     # Create the FPN on top of your randomly-initialized ResNet-50 model
     custom_backbone = custom_resnet_fpn_backbone(resnet_model, return_layers)
 
-    # Define the number of classes for your detection task (including background class)
-    num_classes = 2  # For example, 91 classes including background for the COCO dataset
+    num_classes = 2 # cars and background
 
-    # Create the Faster R-CNN model with the custom backbone
     model = FasterRCNN(backbone=custom_backbone, num_classes=num_classes)
     return model
 
@@ -195,10 +192,9 @@ if __name__=="__main__":
 
                 with autocast():
                     images = list(image.to(device) for image in images)
-                    targets = [{k: v.to(device) for k, v in t.items()} for t in targets] #[{k: v.to(device) for k, v in t.items()} for t in targets]
+                    targets = [{k: v.to(device) for k, v in t.items()} for t in targets] 
 
                     loss_dict = model(images, targets)
-                    # print(loss_dict)
                     losses = sum(loss for loss in loss_dict.values())
                     epoch_loss += losses.item()
 
@@ -208,8 +204,6 @@ if __name__=="__main__":
 
                 local_progress.set_postfix(loss_dict)
 
-              #  losses.backward()
-              #  optimizer.step()
                 torch.cuda.empty_cache()
             except Exception as e:
                 print(e)

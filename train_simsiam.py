@@ -39,8 +39,6 @@ if __name__=="__main__":
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = SimSiam().to(device)
-
-    # optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=opt.momentum, weight_decay=opt.weight_decay)
     
     # fixed parameters
     warmup_epochs = 10
@@ -81,9 +79,6 @@ if __name__=="__main__":
             
             local_progress.set_postfix(data_dict)
 
-        #if args.train.knn_monitor and epoch % args.train.knn_interval == 0: 
-        # accuracy = knn_monitor(model.encoder, memory_loader, test_loader, device, k=min(25, len(memory_loader.dataset))) 
-        # knn_accuracies.append(accuracy)
         epoch_dict = {"epoch":epoch}
         global_progress.set_postfix(epoch_dict)
 

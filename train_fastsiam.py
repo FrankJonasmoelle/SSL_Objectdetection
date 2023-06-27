@@ -39,13 +39,11 @@ if __name__=="__main__":
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = FastSiam().to(device)
-
-    # optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=opt.momentum, weight_decay=opt.weight_decay)
     
     # fixed parameters
     warmup_epochs = 10
     warmup_lr = 0
-    base_lr = 0.03 # 0.125
+    base_lr = 0.03 
     final_lr = 0
 
     optimizer = get_optimizer(
