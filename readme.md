@@ -8,4 +8,5 @@ Steps to execute:
 - Train the Faster R-CNN which uses the trained backbone weights from the previous step by executing *train_fasterrcnn.py*
 - Receive the AP score by running *test_fasterrcnn.py*
 
+The following figure shows the labeled bounding boxes on the left, and the predicted bounding boxes of a Faster R-CNN network with a backbone network trained via FSSL on the right. 
 ![alt text](example_prediction/zod_example_predictions.png "Example Prediction")
